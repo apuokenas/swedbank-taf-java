@@ -1,0 +1,59 @@
+apply plugin: 'idea'
+apply plugin: 'java'
+
+version = '0.1'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+  compile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '3.1.0'
+  compile group: 'log4j', name: 'log4j', version: '1.2.17'
+  compile group: 'org.testng', name: 'testng', version: '6.10'
+
+}
+
+/*
+  If in Jenkins, i.e. env WORKSPACE is defined, then takes it for test name
+  If not, searches for file c:\temp\testToRun, first hash uncommented line
+*/
+def getTestToRun() {
+    def file = new File("c:\\temp\\testToRun.txt")
+    if (System.getenv()['WORKSPACE'] || !file.exists()) {
+        println "Jenkins mode, testToRun=${System.getProperty('testToRun')}"
+        System.getProperty("testToRun")
+    } else {
+        def line
+        def liner
+        file.withReader {
+            while (liner = it.readLine()) {
+                if (!(liner ==~ / *#/)) line = liner
+            }
+        }
+        println "Local mode, testToRun = $line"
+        line
+    }
+}
+
+test {
+
+    systemProperty "taf.config.file", System.getProperty("taf.config.file")
+
+    if (System.getProperty("webdriver.ie.driver")?.trim()) {
+        systemProperty "webdriver.ie.driver", System.getProperty("webdriver.ie.driver")
+    }
+
+    testLogging.showStandardStreams = true
+
+    useTestNG() {
+        useDefaultListeners = true
+    }
+
+}
+
+task getDeps(type: Copy) {
+  from sourceSets.main.runtimeClasspath
+  into 'runtime/'
+}
